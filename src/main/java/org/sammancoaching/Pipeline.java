@@ -14,13 +14,46 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        boolean testsPassed = executarFaseDeTestes(project);
+        final boolean testsPassed = executarFaseDeTestes(project);
 
         boolean deploySuccessful = false;
         if (testsPassed) {
             deploySuccessful = executarFaseDeDeploy(project);
         }
 
+        notificarResultadoFinal(testsPassed, deploySuccessful);
+    }
+
+    private boolean executarFaseDeTestes(Project project) {
+        if (!project.hasTests()) {
+            log.info("No tests");
+            return true;
+        }
+
+        boolean isTestSuccess = "success".equals(project.runTests());
+
+        if (isTestSuccess) {
+            log.info("Tests passed");
+            return true;
+        }
+
+        log.error("Tests failed");
+        return false;
+    }
+
+    private boolean executarFaseDeDeploy(Project project) {
+        boolean isDeploySuccess = "success".equals(project.deploy());
+
+        if (isDeploySuccess) {
+            log.info("Deployment successful");
+            return true;
+        }
+
+        log.error("Deployment failed");
+        return false;
+    }
+
+    private void notificarResultadoFinal(boolean testsPassed, boolean deploySuccessful) {
         if (config.sendEmailSummary()) {
             log.info("Sending email");
             if (!testsPassed) {
@@ -32,31 +65,6 @@ public class Pipeline {
             }
         } else {
             log.info("Email disabled");
-        }
-    }
-
-    private boolean executarFaseDeTestes(Project project) {
-        if (project.hasTests()) {
-            if ("success".equals(project.runTests())) {
-                log.info("Tests passed");
-                return true;
-            } else {
-                log.error("Tests failed");
-                return false;
-            }
-        } else {
-            log.info("No tests");
-            return true;
-        }
-    }
-
-    private boolean executarFaseDeDeploy(Project project) {
-        if ("success".equals(project.deploy())) {
-            log.info("Deployment successful");
-            return true;
-        } else {
-            log.error("Deployment failed");
-            return false;
         }
     }
 }
