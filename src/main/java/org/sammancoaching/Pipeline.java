@@ -1,9 +1,6 @@
 package org.sammancoaching;
 
-import org.sammancoaching.dependencies.Config;
-import org.sammancoaching.dependencies.Emailer;
-import org.sammancoaching.dependencies.Logger;
-import org.sammancoaching.dependencies.Project;
+import org.sammancoaching.dependencies.*;
 
 public class Pipeline {
     private final Config config;
@@ -17,47 +14,49 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        boolean testsPassed;
-        boolean deploySuccessful;
+        boolean testsPassed = executarFaseDeTestes(project);
 
-        if (project.hasTests()) {
-            if ("success".equals(project.runTests())) {
-                log.info("Tests passed");
-                testsPassed = true;
-            } else {
-                log.error("Tests failed");
-                testsPassed = false;
-            }
-        } else {
-            log.info("No tests");
-            testsPassed = true;
-        }
-
+        boolean deploySuccessful = false;
         if (testsPassed) {
-            if ("success".equals(project.deploy())) {
-                log.info("Deployment successful");
-                deploySuccessful = true;
-            } else {
-                log.error("Deployment failed");
-                deploySuccessful = false;
-            }
-        } else {
-            deploySuccessful = false;
+            deploySuccessful = executarFaseDeDeploy(project);
         }
 
         if (config.sendEmailSummary()) {
             log.info("Sending email");
-            if (testsPassed) {
-                if (deploySuccessful) {
-                    emailer.send("Deployment completed successfully");
-                } else {
-                    emailer.send("Deployment failed");
-                }
-            } else {
+            if (!testsPassed) {
                 emailer.send("Tests failed");
+            } else if (!deploySuccessful) {
+                emailer.send("Deployment failed");
+            } else {
+                emailer.send("Deployment completed successfully");
             }
         } else {
             log.info("Email disabled");
+        }
+    }
+
+    private boolean executarFaseDeTestes(Project project) {
+        if (project.hasTests()) {
+            if ("success".equals(project.runTests())) {
+                log.info("Tests passed");
+                return true;
+            } else {
+                log.error("Tests failed");
+                return false;
+            }
+        } else {
+            log.info("No tests");
+            return true;
+        }
+    }
+
+    private boolean executarFaseDeDeploy(Project project) {
+        if ("success".equals(project.deploy())) {
+            log.info("Deployment successful");
+            return true;
+        } else {
+            log.error("Deployment failed");
+            return false;
         }
     }
 }
