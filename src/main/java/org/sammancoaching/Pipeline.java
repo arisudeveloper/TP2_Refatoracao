@@ -54,17 +54,19 @@ public class Pipeline {
     }
 
     private void notificarResultadoFinal(boolean testsPassed, boolean deploySuccessful) {
-        if (config.sendEmailSummary()) {
-            log.info("Sending email");
-            if (!testsPassed) {
-                emailer.send("Tests failed");
-            } else if (!deploySuccessful) {
-                emailer.send("Deployment failed");
-            } else {
-                emailer.send("Deployment completed successfully");
-            }
-        } else {
+        if (!config.sendEmailSummary()) {
             log.info("Email disabled");
+            return;
         }
+
+        log.info("Sending email");
+        String mensagem = definirMensagemDeNotificacao(testsPassed, deploySuccessful);
+        emailer.send(mensagem);
+    }
+
+    private String definirMensagemDeNotificacao(boolean testsPassed, boolean deploySuccessful) {
+        if (!testsPassed) return "Tests failed";
+        if (!deploySuccessful) return "Deployment failed";
+        return "Deployment completed successfully";
     }
 }
